@@ -1,8 +1,6 @@
 package it.polito.tdp.food.model;
-
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
@@ -12,108 +10,118 @@ import org.jgrapht.graph.SimpleWeightedGraph;
 import it.polito.tdp.food.db.FoodDao;
 
 public class Model {
+
+	private Graph<String, DefaultWeightedEdge> graph;
+	private List<String> vertici;
+
+	// variabili per lo stato della ricorsione
+	private double pesoMax ;
+
+	private List<String> camminoMax ;
 	
-	private FoodDao dao;
-	private Graph<String, DefaultWeightedEdge> grafo;
-	
-	//RICORSIONE (CAMMINO DI PESO MAX)
-	private List<String> best;
-	private int totPeso;
-	
-	
-	public Model() {
-		dao = new FoodDao();
-	}
-	
-	public void creaGrafo(int num) {
-		
-		grafo = new SimpleWeightedGraph<>(DefaultWeightedEdge.class);
-		
-		Graphs.addAllVertices(this.grafo, dao.getVertex(num));
-		
-		Set<String> verticiPossibili=grafo.vertexSet(); //così evito di ricalcolarlo ogni volta
-		
-		for(Edge ei: dao.getArchiEsistenti()) {
-			if(verticiPossibili.contains(ei.getP1()) && verticiPossibili.contains(ei.getP2()) && !ei.getP1().equals(ei.getP2())) {
-				if(!grafo.containsEdge(ei.getP1(), ei.getP2())) {
-						Graphs.addEdge(this.grafo, ei.getP1(), ei.getP2(), ei.getPeso());	
-				}
+	public String creaGrafo(int C) {
+
+		FoodDao dao = new FoodDao();
+
+		this.vertici = dao.getPortionDisplayNames(C);
+
+		this.graph = new SimpleWeightedGraph<>(DefaultWeightedEdge.class);
+
+		Graphs.addAllVertices(this.graph, vertici);
+
+		List<InfoArco> archi = dao.getTuttiGliArchi();
+
+		for (InfoArco a : archi) {
+			if (this.graph.vertexSet().contains(a.getVertice1()) && 
+					this.graph.vertexSet().contains(a.getVertice2())) {
+				Graphs.addEdge(this.graph, a.getVertice1(), a.getVertice2(), a.getPeso());
 			}
 		}
 		
-	}
-	
-	public int numVertici() {
-		return this.grafo.vertexSet().size();
-	}
-	
-	public int numArchi() {
-		return this.grafo.edgeSet().size();
-	}
-	
-	public Set<String> getVertici(){
-		return this.grafo.vertexSet();
-	}
+		return String.format("Grafo creato (%d vertici, %d archi)\n", 
+				this.graph.vertexSet().size(), this.graph.edgeSet().size()); 
 
-	public List<Edge> getCorrelate(String porzione) {
-		
-		List<Edge> result = new LinkedList<>();
-		
-		List<String> vicini = Graphs.neighborListOf(this.grafo, porzione) ;
+//		System.out.println(this.graph);
+
+	}
+	
+	public List<PorzioneAdiacente> getAdiacenti(String porzione) {
+		List<String> vicini = Graphs.neighborListOf(this.graph, porzione) ;
+		List<PorzioneAdiacente> result = new ArrayList<>();
 		for(String v: vicini) {
-			double peso = this.grafo.getEdgeWeight(this.grafo.getEdge(porzione, v)) ;
-			result.add(new Edge(porzione, v, (int) peso)) ;
+			double peso = this.graph.getEdgeWeight(this.graph.getEdge(porzione, v)) ;
+			result.add(new PorzioneAdiacente(v, peso)) ;
 		}
 		return result ;
-		
 	}
 
-	
-	
-	//RICORSIONE
-	public List<String> init(int passi, String partenza) {
-		
-		this.best= new LinkedList<>();
-		List<String> parziale = new LinkedList<>();
-		this.totPeso=0;
-		int parzialePeso=0;
-		
-		best.add(partenza);
-		parziale.add(partenza);
-		
-		ricorsione(parziale, parzialePeso, passi);
-				
-		return best;
+	public List<String> getVerticiGrafo() {
+		return this.vertici;
 	}
-
-	private void ricorsione(List<String> parziale, int parzialePeso, int passi) {
+	
+	/*
+	[ v1 v2 v3 v4 ] -> lungo N
+	Soluzione parziale: un cammino che parte dal vertice iniziale
+	Livello: lunghezza del camminio parziale
+	Condizione di terminazione: Cammino ha lunghezza N (cioè N+1 vertici)
+	Funzione da valutare: peso del cammino
+	Generazione delle soluzioni: aggiungere gli adiacenti che non siano ancora
+	presenti nel cammino
+	Avvio della ricorsione: 1 vertice (di partenza)
+		[ partenza ] , livello = 1
+		[ partenza, v ] , livello = 2
+		[ partenza, v2, v3, v4, .... v(N+1) ], livello = N+1  
+	*/
+	
+	public void cercaCammino(String partenza, int N) {
+		this.camminoMax = null ;
+		this.pesoMax = 0.0 ;
 		
-		if(parziale.size()==passi) {
-			if(parzialePeso>totPeso) {
-				best= new LinkedList<>(parziale);
-				totPeso=parzialePeso;
+		List<String> parziale = new ArrayList<>() ;
+		parziale.add(partenza) ;
+		
+		search(parziale, 1, N);
+	}
+	
+	private void search(List<String> parziale, int livello, int N) {
+		
+		if(livello == N+1) {
+			double peso = pesoCammino(parziale) ;
+			if(peso>this.pesoMax) {
+				this.pesoMax=peso ;
+				this.camminoMax = new ArrayList<>(parziale);
 			}
+			return ;
 		}
 		
-		
-		
-		for(String si: Graphs.neighborListOf(this.grafo, parziale.get(parziale.size()-1))) {
-			if(!parziale.contains(si)) {
-				int aggiunta=(int) this.grafo.getEdgeWeight(this.grafo.getEdge(si, parziale.get(parziale.size()-1)));
-					
-				parzialePeso+=aggiunta;
-				parziale.add(si);
-					
-				ricorsione(parziale, parzialePeso);
-					
-				parziale.remove(parziale.size()-1);
-				parzialePeso=parzialePeso-aggiunta;
+		List<String> vicini = Graphs.neighborListOf(this.graph, parziale.get(livello-1)) ;
+		for(String v : vicini) {
+			if(!parziale.contains(v)) {
+				parziale.add(v) ;
+				search(parziale, livello+1, N) ;
+				parziale.remove(parziale.size()-1) ;
 			}
 		}
-		
+	}
 
-		
-		
+	private double pesoCammino(List<String> parziale) {
+		double peso = 0.0 ;
+		for(int i=1; i<parziale.size(); i++) {
+			double p = this.graph.getEdgeWeight(this.graph.getEdge(parziale.get(i-1), parziale.get(i))) ;
+			peso += p ;
+		}
+		return peso ;
 	}
 	
+	public double getPesoMax() {
+		return pesoMax;
+	}
+
+	public List<String> getCamminoMax() {
+		return camminoMax;
+	}
+
+
 }
+	
+
