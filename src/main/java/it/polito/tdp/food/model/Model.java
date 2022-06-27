@@ -81,33 +81,37 @@ public class Model {
 		best.add(partenza);
 		parziale.add(partenza);
 		
-		ricorsione(parziale, parzialePeso);
+		ricorsione(parziale, parzialePeso, passi);
 				
 		return best;
 	}
 
-	private void ricorsione(List<String> parziale, int parzialePeso) {
+	private void ricorsione(List<String> parziale, int parzialePeso, int passi) {
 		
-		if(parzialePeso>totPeso) {
-			best= new LinkedList<>(parziale);
-			totPeso=parzialePeso;
+		if(parziale.size()==passi) {
+			if(parzialePeso>totPeso) {
+				best= new LinkedList<>(parziale);
+				totPeso=parzialePeso;
+			}
+			return;
 		}
 		
-		if(parziale.size()<4) {
-			for(String si: Graphs.neighborListOf(this.grafo, parziale.get(parziale.size()-1))) {
-				if(!parziale.contains(si)) {
-					int aggiunta=(int) this.grafo.getEdgeWeight(this.grafo.getEdge(si, parziale.get(parziale.size()-1)));
+		
+		
+		for(String si: Graphs.neighborListOf(this.grafo, parziale.get(parziale.size()-1))) {
+			if(!parziale.contains(si)) {
+				int aggiunta=(int) this.grafo.getEdgeWeight(this.grafo.getEdge(si, parziale.get(parziale.size()-1)));
 					
-					parzialePeso+=aggiunta;
-					parziale.add(si);
+				parzialePeso+=aggiunta;
+				parziale.add(si);
 					
-					ricorsione(parziale, parzialePeso);
+				ricorsione(parziale, parzialePeso,passi);
 					
-					parziale.remove(parziale.size()-1);
-					parzialePeso=parzialePeso-aggiunta;
-				}
+				parziale.remove(parziale.size()-1);
+				parzialePeso=parzialePeso-aggiunta;
 			}
 		}
+		
 
 		
 		
