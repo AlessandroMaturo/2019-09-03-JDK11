@@ -52,6 +52,29 @@ public class FoodController {
     void doCammino(ActionEvent event) {
     	txtResult.clear();
     	txtResult.appendText("Cerco cammino peso massimo...");
+    	
+    	String porzione = boxPorzioni.getValue();
+
+    	
+    	if(porzione!=null) {
+    		
+    		try {
+    			int passi=Integer.parseInt(txtPassi.getText());
+    			
+    			List<String> result= model.init(passi, porzione);
+    			
+    			for(String si: result) {
+                	txtResult.appendText(si+"\n");
+
+        		}
+    			
+    		} catch (NumberFormatException e){
+    			txtResult.appendText("Perfavore inserisci un numero valido di passi!\n");
+    		}
+    		
+    	} else {
+    		txtResult.appendText("Perfavore seleziona una porzione!\n");
+    	}
     }
 
     @FXML

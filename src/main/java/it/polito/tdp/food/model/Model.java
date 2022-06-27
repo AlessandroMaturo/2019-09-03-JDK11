@@ -16,6 +16,10 @@ public class Model {
 	private FoodDao dao;
 	private Graph<String, DefaultWeightedEdge> grafo;
 	
+	//RICORSIONE (CAMMINO DI PESO MAX)
+	private List<String> best;
+	private int totPeso;
+	
 	
 	public Model() {
 		dao = new FoodDao();
@@ -63,6 +67,50 @@ public class Model {
 		return result ;
 		
 	}
+
 	
+	
+	//RICORSIONE
+	public List<String> init(int passi, String partenza) {
+		
+		this.best= new LinkedList<>();
+		List<String> parziale = new LinkedList<>();
+		this.totPeso=0;
+		int parzialePeso=0;
+		
+		best.add(partenza);
+		parziale.add(partenza);
+		
+		ricorsione(parziale, parzialePeso);
+				
+		return best;
+	}
+
+	private void ricorsione(List<String> parziale, int parzialePeso) {
+		
+		if(parzialePeso>totPeso) {
+			best= new LinkedList<>(parziale);
+			totPeso=parzialePeso;
+		}
+		
+		if(parziale.size()<4) {
+			for(String si: Graphs.neighborListOf(this.grafo, parziale.get(parziale.size()-1))) {
+				if(!parziale.contains(si)) {
+					int aggiunta=(int) this.grafo.getEdgeWeight(this.grafo.getEdge(si, parziale.get(parziale.size()-1)));
+					
+					parzialePeso+=aggiunta;
+					parziale.add(si);
+					
+					ricorsione(parziale, parzialePeso);
+					
+					parziale.remove(parziale.size()-1);
+					parzialePeso=parzialePeso-aggiunta;
+				}
+			}
+		}
+
+		
+		
+	}
 	
 }
