@@ -5,7 +5,10 @@
 package it.polito.tdp.food;
 
 import java.net.URL;
+import java.util.List;
 import java.util.ResourceBundle;
+
+import it.polito.tdp.food.model.Edge;
 import it.polito.tdp.food.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -40,7 +43,7 @@ public class FoodController {
     private Button btnCammino; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxPorzioni"
-    private ComboBox<?> boxPorzioni; // Value injected by FXMLLoader
+    private ComboBox<String> boxPorzioni; // Value injected by FXMLLoader
 
     @FXML // fx:id="txtResult"
     private TextArea txtResult; // Value injected by FXMLLoader
@@ -54,7 +57,24 @@ public class FoodController {
     @FXML
     void doCorrelate(ActionEvent event) {
     	txtResult.clear();
-    	txtResult.appendText("Cerco porzioni correlate...");
+    	txtResult.appendText("Cerco porzioni correlate...\n");
+    	
+    	String porzione = boxPorzioni.getValue();
+    	
+    	if(porzione!=null) {
+    		
+    		List<Edge> result = model.getCorrelate(porzione);
+    		
+    		for(Edge ei: result) {
+            	txtResult.appendText(ei.getP2()+" "+ei.getPeso()+"\n");
+
+    		}
+    		
+    	} else {
+    		txtResult.appendText("Perfavore seleziona una porzione!\n");
+    	}
+    	
+    	
     	
     }
 
@@ -62,6 +82,25 @@ public class FoodController {
     void doCreaGrafo(ActionEvent event) {
     	txtResult.clear();
     	txtResult.appendText("Creazione grafo...");
+    	
+    	try {
+        	int num=Integer.parseInt(txtCalorie.getText());
+        	
+        	model.creaGrafo(num);
+        	
+        	boxPorzioni.getItems().clear();
+        	boxPorzioni.getItems().addAll(model.getVertici());
+        	
+        	txtResult.appendText("Grafo creato!\n");
+        	txtResult.appendText("Vertici: "+model.numVertici()+"\n");
+        	txtResult.appendText("Archi: "+model.numArchi()+"\n");
+        	
+        	
+        	
+
+    	} catch(NumberFormatException e) {
+    		txtResult.appendText("Perfavore inserisci un numero\n");
+    	}
     	
     }
 
